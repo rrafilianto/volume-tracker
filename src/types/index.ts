@@ -21,6 +21,7 @@ export interface TokenAlert {
   price: number;
   marketCap: number;
   fees1m?: number;
+  creationTimestamp?: number;
   detectedAt: Date;
 }
 
@@ -38,4 +39,6 @@ export interface GMGNTokenData {
   gas_fee?: number;
   swaps_1m_fee?: number;
   fees_1m?: number;
+  creation_timestamp?: number;
+  open_timestamp?: number;
 }

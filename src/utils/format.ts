@@ -46,6 +46,29 @@ export const formatFee = (val: number, chain: SupportedChain): string => {
   return `${formatted} ${symbol}`;
 };
 
+export const formatTokenAge = (creationTimestamp?: number): string => {
+  if (!creationTimestamp || creationTimestamp <= 0) return 'Unknown';
+
+  const creationMs = creationTimestamp > 1e11 ? creationTimestamp : creationTimestamp * 1000;
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - creationMs) / 1000));
+
+  if (diffSeconds < 60) {
+    return `${diffSeconds} dtk`;
+  }
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `${diffMinutes} mnt`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    const mins = diffMinutes % 60;
+    return mins > 0 ? `${diffHours}j ${mins}m` : `${diffHours}j`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  const hours = diffHours % 24;
+  return hours > 0 ? `${diffDays}h ${hours}j` : `${diffDays}h`;
+};
+
 export const formatWIBDate = (date: Date): string => {
   // Convert date to WIB (UTC+7)
   const options: Intl.DateTimeFormatOptions = {
@@ -67,6 +90,7 @@ export const formatTelegramAlert = (alert: TokenAlert): string => {
   const symbolStr = alert.symbol.startsWith('$')
     ? alert.symbol
     : `$${alert.symbol}`;
+  const ageStr = alert.creationTimestamp ? formatTokenAge(alert.creationTimestamp) : undefined;
   const volumeStr = formatCurrency(alert.volume1m);
   const priceStr = formatPrice(alert.price);
   const mcapStr = formatCurrency(alert.marketCap);
@@ -79,6 +103,9 @@ export const formatTelegramAlert = (alert: TokenAlert): string => {
   let msg = `🚨 *Volume Alert — ${chainName}*\n\n`;
   msg += `*Token:* ${symbolStr}\n`;
   msg += `*CA:* \`${alert.address}\`\n`;
+  if (ageStr) {
+    msg += `*Age:* ${ageStr}\n`;
+  }
   msg += `*Volume (1m):* ${volumeStr}\n`;
   msg += `*Price:* ${priceStr}\n`;
   msg += `*Market Cap:* ${mcapStr}\n`;

@@ -64,6 +64,7 @@ export class GMGNService {
           fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
             ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
             : undefined,
+          creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
           detectedAt: new Date(),
         });
       }
@@ -111,6 +112,7 @@ export class GMGNService {
           fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
             ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
             : undefined,
+          creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
           detectedAt: new Date(),
         });
       }
