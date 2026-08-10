@@ -21,6 +21,7 @@
   "dependencies": {
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
+    "gmgn-cli": "^1.5.6",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {

@@ -43,7 +43,7 @@ export class GMGNService {
     ageFilter?: { minAge?: string; maxAge?: string }
   ): Promise<TokenAlert[]> {
     const chainParam = chain === 'robinhood' ? 'robinhood' : chain;
-    let command = `npx --no-install gmgn-cli market trending --chain ${chainParam} --interval 1m --min-volume ${minVolume}`;
+    let command = `npx gmgn-cli market trending --chain ${chainParam} --interval 1m --min-volume ${minVolume}`;
 
     if (ageFilter?.maxAge) {
       command += ` --max-created ${ageFilter.maxAge}`;
