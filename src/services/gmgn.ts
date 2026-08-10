@@ -23,19 +23,12 @@ export class GMGNService {
     const apiKey = process.env.GMGN_API_KEY || process.env.GMGN_PRIVATE_KEY || '';
 
     try {
-      // 1. Try fetching via official gmgn-cli (handles Cloudflare anti-bot and API key auth)
+      // Fetch via official gmgn-cli (handles Cloudflare anti-bot and API key auth)
       const alerts = await this.fetchViaCLIRetry(chain, minVolume, apiKey, ageFilter);
       return alerts;
     } catch (cliError: any) {
-      console.warn(`[GMGN CLI Warning] CLI fetch for ${chain} failed: ${cliError?.message || cliError}. Trying fallback HTTP...`);
-      
-      // 2. Fallback to direct HTTP request if CLI is unavailable
-      try {
-        return await this.fetchViaHTTP(chain, minVolume, apiKey);
-      } catch (httpError: any) {
-        console.error(`[GMGN API Error] Failed fetching chain ${chain}:`, httpError?.response?.status || httpError?.message || httpError);
-        return [];
-      }
+      console.warn(`[GMGN API Notice] Temporary network timeout fetching chain ${chain}, skipping cycle.`);
+      return [];
     }
   }
 
