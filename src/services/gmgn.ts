@@ -10,13 +10,18 @@ export class GMGNService {
    * Fetches high volume 1-minute tokens for a specific chain using GMGN CLI / OpenAPI
    * @param chain 'sol' | 'bsc' | 'robinhood'
    * @param minVolume Threshold volume 1m
+   * @param ageFilter Optional minAge and maxAge filter (e.g. { maxAge: '1h', minAge: '5m' })
    */
-  async fetchHighVolumeTokens(chain: SupportedChain, minVolume: number): Promise<TokenAlert[]> {
+  async fetchHighVolumeTokens(
+    chain: SupportedChain,
+    minVolume: number,
+    ageFilter?: { minAge?: string; maxAge?: string }
+  ): Promise<TokenAlert[]> {
     const apiKey = process.env.GMGN_API_KEY || process.env.GMGN_PRIVATE_KEY || '';
 
     try {
       // 1. Try fetching via official gmgn-cli (handles Cloudflare anti-bot and API key auth)
-      const alerts = await this.fetchViaCLI(chain, minVolume, apiKey);
+      const alerts = await this.fetchViaCLI(chain, minVolume, apiKey, ageFilter);
       return alerts;
     } catch (cliError: any) {
       console.warn(`[GMGN CLI Warning] CLI fetch for ${chain} failed: ${cliError?.message || cliError}. Trying fallback HTTP...`);
@@ -31,9 +36,21 @@ export class GMGNService {
     }
   }
 
-  private async fetchViaCLI(chain: SupportedChain, minVolume: number, apiKey: string): Promise<TokenAlert[]> {
+  private async fetchViaCLI(
+    chain: SupportedChain,
+    minVolume: number,
+    apiKey: string,
+    ageFilter?: { minAge?: string; maxAge?: string }
+  ): Promise<TokenAlert[]> {
     const chainParam = chain === 'robinhood' ? 'robinhood' : chain;
-    const command = `npx --no-install gmgn-cli market trending --chain ${chainParam} --interval 1m`;
+    let command = `npx --no-install gmgn-cli market trending --chain ${chainParam} --interval 1m`;
+
+    if (ageFilter?.maxAge) {
+      command += ` --max-created ${ageFilter.maxAge}`;
+    }
+    if (ageFilter?.minAge) {
+      command += ` --min-created ${ageFilter.minAge}`;
+    }
 
     const env = {
       ...process.env,

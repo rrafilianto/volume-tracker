@@ -6,8 +6,14 @@ export interface ChainThresholds {
   robinhood: number;
 }
 
+export interface ChainAgeFilter {
+  minAge?: string;
+  maxAge?: string;
+}
+
 export interface BotConfig {
   threshold: ChainThresholds;
+  ageFilter: Record<SupportedChain, ChainAgeFilter>;
   cooldownMinutes: number;
   isActive: boolean;
 }

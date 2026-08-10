@@ -7,6 +7,11 @@ const config: BotConfig = {
     bsc: 50000,
     robinhood: 50000,
   },
+  ageFilter: {
+    sol: {},
+    bsc: {},
+    robinhood: {},
+  },
   cooldownMinutes: 5,
   isActive: true,
 };
@@ -25,6 +30,14 @@ export const getState = () => config;
 
 export const setThreshold = (chain: SupportedChain, amount: number): void => {
   config.threshold[chain] = amount;
+};
+
+export const setMaxAge = (chain: SupportedChain, duration?: string): void => {
+  config.ageFilter[chain].maxAge = duration;
+};
+
+export const setMinAge = (chain: SupportedChain, duration?: string): void => {
+  config.ageFilter[chain].minAge = duration;
 };
 
 export const setCooldownMinutes = (minutes: number): void => {

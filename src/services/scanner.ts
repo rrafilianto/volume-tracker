@@ -63,7 +63,8 @@ export class ScannerService {
 
     try {
       // Fetch high volume 1-minute tokens from GMGN API
-      const alerts = await gmgnService.fetchHighVolumeTokens(chain, threshold);
+      const ageFilter = state.ageFilter[chain];
+      const alerts = await gmgnService.fetchHighVolumeTokens(chain, threshold, ageFilter);
       updateLastScan(chain);
 
       for (const alert of alerts) {

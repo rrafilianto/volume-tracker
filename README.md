@@ -115,9 +115,12 @@ Daftar perintah berikut akan otomatis terdaftar di menu autocomplete Telegram sa
 
 | Command | Parameter | Deskripsi | Default |
 |---|---|---|---|
-| `/status` | - | Tampilkan status bot, last scan per chain, & statistik cooldown | - |
+| `/status` | - | Tampilkan status bot, last scan per chain, & statistik age filter | - |
 | `/threshold` | - | Lihat threshold volume 1m aktif semua chain | - |
 | `/setthreshold` | `<chain> <amount>` | Set threshold volume 1m (`sol`, `bsc`, `robinhood`) | `$50.000` |
+| `/age` | - | Lihat filter umur token (min/max age) aktif per chain | - |
+| `/setmaxage` | `<chain> <durasi>` | Set batas umur maksimal token (`30m`, `1h`, `6h`, `2d`, atau `off`) | `Off` |
+| `/setminage` | `<chain> <durasi>` | Set batas umur minimal token (`5m`, `10m`, `1h`, atau `off`) | `Off` |
 | `/cooldown` | - | Lihat durasi cooldown aktif | - |
 | `/setcooldown` | `<menit>` | Set durasi cooldown notifikasi per token | `5 menit` |
 | `/pause` | - | Hentikan sementara scanning & notifikasi | - |

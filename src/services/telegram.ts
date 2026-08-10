@@ -2,6 +2,8 @@ import { Telegraf, Context } from 'telegraf';
 import {
   getState,
   setThreshold,
+  setMaxAge,
+  setMinAge,
   setCooldownMinutes,
   setIsActive,
   getLastScanMap,
@@ -94,6 +96,106 @@ export class TelegramService {
       await ctx.reply(msg, { parse_mode: 'Markdown' });
     });
 
+    // Command: /setmaxage <chain> <duration>
+    this.bot.command('setmaxage', async (ctx) => {
+      const parts = ctx.message.text.trim().split(/\s+/);
+      if (parts.length < 3) {
+        await ctx.reply(
+          '❌ *Format salah.*\nGunakan: `/setmaxage <chain> <durasi>`\nContoh: `/setmaxage sol 1h` atau `/setmaxage sol off`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const chainInput = parts[1].toLowerCase() as SupportedChain;
+      const durationInput = parts[2].toLowerCase();
+
+      const validChains: SupportedChain[] = ['sol', 'bsc', 'robinhood'];
+      if (!validChains.includes(chainInput)) {
+        await ctx.reply(`❌ Chain tidak valid! Pilihan chain: \`sol\`, \`bsc\`, \`robinhood\``, {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      if (durationInput === 'off' || durationInput === '0') {
+        setMaxAge(chainInput, undefined);
+        await ctx.reply(`✅ *Filter Max Age Dimatikan* untuk chain \`${chainInput.toUpperCase()}\``, {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      if (!/^\d+[mhd]$/.test(durationInput)) {
+        await ctx.reply(
+          '❌ *Format durasi tidak valid!*\nGunakan kombinasi angka & satuan (`m`/`h`/`d`). Contoh: `30m`, `1h`, `6h`, `2d`, atau `off`.',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      setMaxAge(chainInput, durationInput);
+      await ctx.reply(
+        `✅ *Max Token Age updated!*\nChain: \`${chainInput.toUpperCase()}\`\nMax Age: *${durationInput}*`,
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    // Command: /setminage <chain> <duration>
+    this.bot.command('setminage', async (ctx) => {
+      const parts = ctx.message.text.trim().split(/\s+/);
+      if (parts.length < 3) {
+        await ctx.reply(
+          '❌ *Format salah.*\nGunakan: `/setminage <chain> <durasi>`\nContoh: `/setminage sol 5m` atau `/setminage sol off`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const chainInput = parts[1].toLowerCase() as SupportedChain;
+      const durationInput = parts[2].toLowerCase();
+
+      const validChains: SupportedChain[] = ['sol', 'bsc', 'robinhood'];
+      if (!validChains.includes(chainInput)) {
+        await ctx.reply(`❌ Chain tidak valid! Pilihan chain: \`sol\`, \`bsc\`, \`robinhood\``, {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      if (durationInput === 'off' || durationInput === '0') {
+        setMinAge(chainInput, undefined);
+        await ctx.reply(`✅ *Filter Min Age Dimatikan* untuk chain \`${chainInput.toUpperCase()}\``, {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      if (!/^\d+[mhd]$/.test(durationInput)) {
+        await ctx.reply(
+          '❌ *Format durasi tidak valid!*\nGunakan kombinasi angka & satuan (`m`/`h`/`d`). Contoh: `5m`, `10m`, `1h`, atau `off`.',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      setMinAge(chainInput, durationInput);
+      await ctx.reply(
+        `✅ *Min Token Age updated!*\nChain: \`${chainInput.toUpperCase()}\`\nMin Age: *${durationInput}*`,
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    // Command: /age
+    this.bot.command(['age', 'maxage'], async (ctx) => {
+      const state = getState();
+      let msg = `⏳ *Filter Umur Token (Token Age) Saat Ini:*\n\n`;
+      msg += `• *SOL:* Min: ${state.ageFilter.sol.minAge || 'Off'} | Max: ${state.ageFilter.sol.maxAge || 'Off'}\n`;
+      msg += `• *BSC:* Min: ${state.ageFilter.bsc.minAge || 'Off'} | Max: ${state.ageFilter.bsc.maxAge || 'Off'}\n`;
+      msg += `• *ROBINHOOD:* Min: ${state.ageFilter.robinhood.minAge || 'Off'} | Max: ${state.ageFilter.robinhood.maxAge || 'Off'}\n`;
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    });
+
     // Command: /setcooldown <minutes>
     this.bot.command('setcooldown', async (ctx) => {
       const parts = ctx.message.text.trim().split(/\s+/);
@@ -143,7 +245,11 @@ export class TelegramService {
       msg += `*Thresholds:*\n`;
       msg += `  - SOL: ${formatCurrency(state.threshold.sol)}\n`;
       msg += `  - BSC: ${formatCurrency(state.threshold.bsc)}\n`;
-      msg += `  - ROBINHOOD: ${formatCurrency(state.threshold.robinhood)}`;
+      msg += `  - ROBINHOOD: ${formatCurrency(state.threshold.robinhood)}\n\n`;
+      msg += `*Age Filters:*\n`;
+      msg += `  - SOL: Min: ${state.ageFilter.sol.minAge || 'Off'} | Max: ${state.ageFilter.sol.maxAge || 'Off'}\n`;
+      msg += `  - BSC: Min: ${state.ageFilter.bsc.minAge || 'Off'} | Max: ${state.ageFilter.bsc.maxAge || 'Off'}\n`;
+      msg += `  - ROBINHOOD: Min: ${state.ageFilter.robinhood.minAge || 'Off'} | Max: ${state.ageFilter.robinhood.maxAge || 'Off'}`;
 
       await ctx.reply(msg, { parse_mode: 'Markdown' });
     });
@@ -169,6 +275,9 @@ export class TelegramService {
       let msg = `🤖 *GMGN Volume Tracker Commands:*\n\n`;
       msg += `/threshold - Cek threshold volume aktif\n`;
       msg += `/setthreshold <chain> <amount> - Set threshold volume\n`;
+      msg += `/age - Cek filter umur token (min/max age)\n`;
+      msg += `/setmaxage <chain> <durasi> - Set batas umur maksimal (contoh: 30m, 1h, off)\n`;
+      msg += `/setminage <chain> <durasi> - Set batas umur minimal (contoh: 5m, 10m, off)\n`;
       msg += `/cooldown - Cek durasi cooldown aktif\n`;
       msg += `/setcooldown <menit> - Set durasi cooldown\n`;
       msg += `/status - Cek status bot & scanner\n`;
@@ -182,9 +291,12 @@ export class TelegramService {
     if (!this.bot) return;
     try {
       await this.bot.telegram.setMyCommands([
-        { command: 'status', description: 'Cek status bot & last scan' },
+        { command: 'status', description: 'Cek status bot, last scan & age filter' },
         { command: 'threshold', description: 'Lihat threshold volume aktif' },
         { command: 'setthreshold', description: 'Set threshold (<chain> <amount>)' },
+        { command: 'age', description: 'Cek filter umur token (min/max age)' },
+        { command: 'setmaxage', description: 'Set umur maksimal (<chain> <30m/1h/off>)' },
+        { command: 'setminage', description: 'Set umur minimal (<chain> <5m/10m/off>)' },
         { command: 'cooldown', description: 'Lihat durasi cooldown aktif' },
         { command: 'setcooldown', description: 'Set durasi cooldown (<menit>)' },
         { command: 'pause', description: 'Hentikan sementara scanning' },
