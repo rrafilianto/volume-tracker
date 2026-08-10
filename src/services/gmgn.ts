@@ -43,7 +43,7 @@ export class GMGNService {
     ageFilter?: { minAge?: string; maxAge?: string }
   ): Promise<TokenAlert[]> {
     const chainParam = chain === 'robinhood' ? 'robinhood' : chain;
-    let command = `npx --no-install gmgn-cli market trending --chain ${chainParam} --interval 1m`;
+    let command = `npx --no-install gmgn-cli market trending --chain ${chainParam} --interval 1m --min-volume ${minVolume}`;
 
     if (ageFilter?.maxAge) {
       command += ` --max-created ${ageFilter.maxAge}`;
@@ -67,24 +67,20 @@ export class GMGNService {
     const alerts: TokenAlert[] = [];
 
     for (const item of rawTokens) {
-      const volume1m = Number(item.volume_1m ?? item.volume1m ?? item.volume ?? 0);
-
-      if (volume1m >= minVolume) {
-        alerts.push({
-          symbol: item.symbol || 'UNKNOWN',
-          name: item.name || item.symbol || 'Unknown Token',
-          address: item.address,
-          chain,
-          volume1m,
-          price: Number(item.price ?? item.price_usd ?? 0),
-          marketCap: Number(item.market_cap ?? item.marketCap ?? 0),
-          fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
-            ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
-            : undefined,
-          creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
-          detectedAt: new Date(),
-        });
-      }
+      alerts.push({
+        symbol: item.symbol || 'UNKNOWN',
+        name: item.name || item.symbol || 'Unknown Token',
+        address: item.address,
+        chain,
+        volume1m: Number(item.volume_1m ?? item.volume1m ?? item.volume ?? 0),
+        price: Number(item.price ?? item.price_usd ?? 0),
+        marketCap: Number(item.market_cap ?? item.marketCap ?? 0),
+        fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
+          ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
+          : undefined,
+        creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
+        detectedAt: new Date(),
+      });
     }
 
     return alerts;
@@ -115,24 +111,20 @@ export class GMGNService {
     const alerts: TokenAlert[] = [];
 
     for (const item of rawTokens) {
-      const volume1m = Number(item.volume_1m ?? item.volume1m ?? item.volume ?? 0);
-
-      if (volume1m >= minVolume) {
-        alerts.push({
-          symbol: item.symbol || 'UNKNOWN',
-          name: item.name || item.symbol || 'Unknown Token',
-          address: item.address,
-          chain,
-          volume1m,
-          price: Number(item.price ?? item.price_usd ?? 0),
-          marketCap: Number(item.market_cap ?? item.marketCap ?? 0),
-          fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
-            ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
-            : undefined,
-          creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
-          detectedAt: new Date(),
-        });
-      }
+      alerts.push({
+        symbol: item.symbol || 'UNKNOWN',
+        name: item.name || item.symbol || 'Unknown Token',
+        address: item.address,
+        chain,
+        volume1m: Number(item.volume_1m ?? item.volume1m ?? item.volume ?? 0),
+        price: Number(item.price ?? item.price_usd ?? 0),
+        marketCap: Number(item.market_cap ?? item.marketCap ?? 0),
+        fees1m: item.gas_fee !== undefined || item.fees_1m !== undefined || item.swaps_1m_fee !== undefined
+          ? Number(item.gas_fee ?? item.fees_1m ?? item.swaps_1m_fee)
+          : undefined,
+        creationTimestamp: Number(item.creation_timestamp || item.open_timestamp || 0) || undefined,
+        detectedAt: new Date(),
+      });
     }
 
     return alerts;
