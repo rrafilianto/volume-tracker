@@ -5,6 +5,9 @@ import { SupportedChain, TokenAlert, GMGNTokenData } from '../types';
 
 const execAsync = promisify(exec);
 
+import fs from 'fs';
+import path from 'path';
+
 export class GMGNService {
   /**
    * Fetches high volume 1-minute tokens for a specific chain using GMGN CLI / OpenAPI
@@ -21,7 +24,7 @@ export class GMGNService {
 
     try {
       // 1. Try fetching via official gmgn-cli (handles Cloudflare anti-bot and API key auth)
-      const alerts = await this.fetchViaCLI(chain, minVolume, apiKey, ageFilter);
+      const alerts = await this.fetchViaCLIRetry(chain, minVolume, apiKey, ageFilter);
       return alerts;
     } catch (cliError: any) {
       console.warn(`[GMGN CLI Warning] CLI fetch for ${chain} failed: ${cliError?.message || cliError}. Trying fallback HTTP...`);
@@ -36,6 +39,24 @@ export class GMGNService {
     }
   }
 
+  private async fetchViaCLIRetry(
+    chain: SupportedChain,
+    minVolume: number,
+    apiKey: string,
+    ageFilter?: { minAge?: string; maxAge?: string },
+    retries = 1
+  ): Promise<TokenAlert[]> {
+    try {
+      return await this.fetchViaCLI(chain, minVolume, apiKey, ageFilter);
+    } catch (err: any) {
+      if (retries > 0) {
+        await new Promise((res) => setTimeout(res, 1000));
+        return this.fetchViaCLIRetry(chain, minVolume, apiKey, ageFilter, retries - 1);
+      }
+      throw err;
+    }
+  }
+
   private async fetchViaCLI(
     chain: SupportedChain,
     minVolume: number,
@@ -43,7 +64,12 @@ export class GMGNService {
     ageFilter?: { minAge?: string; maxAge?: string }
   ): Promise<TokenAlert[]> {
     const chainParam = chain === 'robinhood' ? 'robinhood' : chain;
-    let command = `npx gmgn-cli market trending --chain ${chainParam} --interval 1m --min-volume ${minVolume}`;
+    
+    // Check if local node_modules binary exists to avoid npx wrapper & npm notice logs
+    const localBin = path.resolve(process.cwd(), 'node_modules', '.bin', 'gmgn-cli');
+    const binCmd = fs.existsSync(localBin) ? `"${localBin}"` : 'npx --quiet gmgn-cli';
+
+    let command = `${binCmd} market trending --chain ${chainParam} --interval 1m --min-volume ${minVolume}`;
 
     if (ageFilter?.maxAge) {
       command += ` --max-created ${ageFilter.maxAge}`;
@@ -58,7 +84,7 @@ export class GMGNService {
       GMGN_PRIVATE_KEY: apiKey,
     };
 
-    const { stdout } = await execAsync(command, { env, timeout: 10000 });
+    const { stdout } = await execAsync(command, { env, timeout: 12000 });
 
     const json = JSON.parse(stdout);
     const rawTokens: GMGNTokenData[] =
