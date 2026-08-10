@@ -1,0 +1,31 @@
+{
+  "name": "gmgn-volume-tracker-bot",
+  "version": "1.0.0",
+  "description": "GMGN 1-minute volume tracker bot for Solana, BSC, and Robinhood Chain with Telegram notifications",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": [
+    "gmgn",
+    "telegram-bot",
+    "volume-tracker",
+    "solana",
+    "bsc",
+    "robinhood"
+  ],
+  "author": "Ryan Rafilianto",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
