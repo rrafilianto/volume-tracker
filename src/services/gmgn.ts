@@ -8,6 +8,8 @@ const execAsync = promisify(exec);
 import fs from 'fs';
 import path from 'path';
 
+import { Logger } from '../utils/logger';
+
 export class GMGNService {
   /**
    * Fetches high volume 1-minute tokens for a specific chain using GMGN CLI / OpenAPI
@@ -27,7 +29,7 @@ export class GMGNService {
       const alerts = await this.fetchViaCLIRetry(chain, minVolume, apiKey, ageFilter);
       return alerts;
     } catch (cliError: any) {
-      console.warn(`[GMGN API Notice] Temporary network timeout fetching chain ${chain}, skipping cycle.`);
+      Logger.warn('GMGN API', `Temporary network timeout fetching chain ${chain.toUpperCase()}, skipping cycle.`);
       return [];
     }
   }

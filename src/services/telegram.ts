@@ -11,6 +11,7 @@ import {
 } from '../state';
 import { SupportedChain, TokenAlert } from '../types';
 import { formatTelegramAlert, formatCurrency, formatWIBDate } from '../utils/format';
+import { Logger } from '../utils/logger';
 
 export class TelegramService {
   private bot: Telegraf | null = null;
@@ -19,7 +20,7 @@ export class TelegramService {
   constructor() {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) {
-      console.warn('[Telegram WARNING] TELEGRAM_BOT_TOKEN is not defined in environment!');
+      Logger.warn('Telegram', 'TELEGRAM_BOT_TOKEN is not defined in environment!');
       return;
     }
 
@@ -44,6 +45,7 @@ export class TelegramService {
     // Middleware authorization check
     this.bot.use(async (ctx, next) => {
       if (!this.isAuthorized(ctx)) {
+        Logger.warn('TelegramAuth', `Blocked update from chatId: ${ctx.chat?.id}, fromId: ${ctx.from?.id}`);
         await ctx.reply('⛔ Access denied. Unauthorized chat or user.');
         return;
       }
@@ -78,6 +80,7 @@ export class TelegramService {
       }
 
       setThreshold(chainInput, amountInput);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} updated threshold: ${chainInput.toUpperCase()} -> $${amountInput.toLocaleString()}`);
       await ctx.reply(
         `✅ *Threshold updated!*\nChain: \`${chainInput.toUpperCase()}\`\nNew Threshold: *${formatCurrency(
           amountInput
@@ -88,6 +91,7 @@ export class TelegramService {
 
     // Command: /threshold
     this.bot.command('threshold', async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /threshold`);
       const state = getState();
       let msg = `⚙️ *Threshold Volume 1m Saat Ini:*\n\n`;
       msg += `• *SOL:* ${formatCurrency(state.threshold.sol)}\n`;
@@ -120,6 +124,7 @@ export class TelegramService {
 
       if (durationInput === 'off' || durationInput === '0') {
         setMaxAge(chainInput, undefined);
+        Logger.info('TelegramCommand', `User ${ctx.from?.id} disabled max age for ${chainInput.toUpperCase()}`);
         await ctx.reply(`✅ *Filter Max Age Dimatikan* untuk chain \`${chainInput.toUpperCase()}\``, {
           parse_mode: 'Markdown',
         });
@@ -135,6 +140,7 @@ export class TelegramService {
       }
 
       setMaxAge(chainInput, durationInput);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} set max age: ${chainInput.toUpperCase()} -> ${durationInput}`);
       await ctx.reply(
         `✅ *Max Token Age updated!*\nChain: \`${chainInput.toUpperCase()}\`\nMax Age: *${durationInput}*`,
         { parse_mode: 'Markdown' }
@@ -165,6 +171,7 @@ export class TelegramService {
 
       if (durationInput === 'off' || durationInput === '0') {
         setMinAge(chainInput, undefined);
+        Logger.info('TelegramCommand', `User ${ctx.from?.id} disabled min age for ${chainInput.toUpperCase()}`);
         await ctx.reply(`✅ *Filter Min Age Dimatikan* untuk chain \`${chainInput.toUpperCase()}\``, {
           parse_mode: 'Markdown',
         });
@@ -180,6 +187,7 @@ export class TelegramService {
       }
 
       setMinAge(chainInput, durationInput);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} set min age: ${chainInput.toUpperCase()} -> ${durationInput}`);
       await ctx.reply(
         `✅ *Min Token Age updated!*\nChain: \`${chainInput.toUpperCase()}\`\nMin Age: *${durationInput}*`,
         { parse_mode: 'Markdown' }
@@ -188,6 +196,7 @@ export class TelegramService {
 
     // Command: /age
     this.bot.command(['age', 'maxage'], async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /age`);
       const state = getState();
       let msg = `⏳ *Filter Umur Token (Token Age) Saat Ini:*\n\n`;
       msg += `• *SOL:* Min: ${state.ageFilter.sol.minAge || 'Off'} | Max: ${state.ageFilter.sol.maxAge || 'Off'}\n`;
@@ -213,6 +222,7 @@ export class TelegramService {
       }
 
       setCooldownMinutes(minutes);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} set cooldown duration -> ${minutes}m`);
       await ctx.reply(`✅ *Cooldown updated!*\nDurasi: *${minutes} menit* per token`, {
         parse_mode: 'Markdown',
       });
@@ -220,6 +230,7 @@ export class TelegramService {
 
     // Command: /cooldown
     this.bot.command('cooldown', async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /cooldown`);
       const state = getState();
       await ctx.reply(`⏱ *Cooldown Aktif:* ${state.cooldownMinutes} menit per token`, {
         parse_mode: 'Markdown',
@@ -228,6 +239,7 @@ export class TelegramService {
 
     // Command: /status
     this.bot.command('status', async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /status`);
       const state = getState();
       const lastScan = getLastScanMap();
       const cooldownCount = getActiveCooldownCount();
@@ -257,6 +269,7 @@ export class TelegramService {
     // Command: /pause
     this.bot.command('pause', async (ctx) => {
       setIsActive(false);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} executed /pause`);
       await ctx.reply('⏸ *Scanning & Notifikasi dihentikan sementara.*', {
         parse_mode: 'Markdown',
       });
@@ -265,6 +278,7 @@ export class TelegramService {
     // Command: /resume
     this.bot.command('resume', async (ctx) => {
       setIsActive(true);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} executed /resume`);
       await ctx.reply('▶️ *Scanning & Notifikasi dilanjutkan kembali.*', {
         parse_mode: 'Markdown',
       });
@@ -272,6 +286,7 @@ export class TelegramService {
 
     // Help command
     this.bot.command('help', async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} executed /help`);
       let msg = `🤖 *GMGN Volume Tracker Commands:*\n\n`;
       msg += `/threshold - Cek threshold volume aktif\n`;
       msg += `/setthreshold <chain> <amount> - Set threshold volume\n`;
@@ -303,20 +318,20 @@ export class TelegramService {
         { command: 'resume', description: 'Lanjutkan kembali scanning' },
         { command: 'help', description: 'Tampilkan panduan perintah' },
       ]);
-      console.log('[Telegram Bot] Bot commands menu registered with Telegram API.');
+      Logger.info('Telegram', 'Bot commands menu registered with Telegram API.');
     } catch (err: any) {
-      console.error('[Telegram Error] Failed setting bot commands:', err?.message || err);
+      Logger.error('Telegram', `Failed setting bot commands: ${err?.message || err}`);
     }
   }
 
   public async launch() {
     if (!this.bot) {
-      console.warn('[Telegram WARNING] Cannot launch bot: token missing.');
+      Logger.warn('Telegram', 'Cannot launch bot: token missing.');
       return;
     }
     await this.setupBotCommands();
     this.bot.launch();
-    console.log('[Telegram Bot] Long polling bot started successfully.');
+    Logger.info('Telegram', 'Long polling bot started successfully.');
   }
 
   public stop(reason: string = 'Process terminated') {

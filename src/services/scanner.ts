@@ -2,6 +2,7 @@ import { getState, isTokenInCooldown, markTokenAlerted, updateLastScan } from '.
 import { SupportedChain } from '../types';
 import { gmgnService } from './gmgn';
 import { telegramService } from './telegram';
+import { Logger } from '../utils/logger';
 
 export class ScannerService {
   private timer: NodeJS.Timeout | null = null;
@@ -13,7 +14,7 @@ export class ScannerService {
       clearInterval(this.timer);
     }
 
-    console.log(`[Scanner] Service started. Polling every ${intervalMs}ms...`);
+    Logger.info('Scanner', `Service started. Polling every ${intervalMs}ms...`);
     
     // Run initial scan immediately
     this.runScanCycle();
@@ -28,7 +29,7 @@ export class ScannerService {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
-      console.log('[Scanner] Service stopped.');
+      Logger.info('Scanner', 'Service stopped.');
     }
   }
 
@@ -44,6 +45,8 @@ export class ScannerService {
     }
 
     this.isScanning = true;
+    const startTime = Date.now();
+    Logger.info('ScannerCycle', '>>> Starting scan cycle across all chains...');
 
     try {
       // Scan each supported chain independently with 5s delay between chains
@@ -55,8 +58,10 @@ export class ScannerService {
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
+      const durationMs = Date.now() - startTime;
+      Logger.info('ScannerCycle', `<<< Scan cycle completed in ${durationMs}ms.`);
     } catch (err: any) {
-      console.error('[Scanner Cycle Error]', err?.message || err);
+      Logger.error('ScannerCycle', `Cycle error: ${err?.message || err}`);
     } finally {
       this.isScanning = false;
     }
@@ -65,16 +70,28 @@ export class ScannerService {
   private async scanChain(chain: SupportedChain) {
     const state = getState();
     const threshold = state.threshold[chain];
+    const ageFilter = state.ageFilter[chain];
+
+    const minAgeStr = ageFilter.minAge || 'off';
+    const maxAgeStr = ageFilter.maxAge || 'off';
+    Logger.info('ChainScan', `Scanning ${chain.toUpperCase()} (Threshold: $${threshold.toLocaleString()}, Age: min=${minAgeStr} max=${maxAgeStr})...`);
 
     try {
       // Fetch high volume 1-minute tokens from GMGN API
-      const ageFilter = state.ageFilter[chain];
       const alerts = await gmgnService.fetchHighVolumeTokens(chain, threshold, ageFilter);
       updateLastScan(chain);
+
+      if (alerts.length === 0) {
+        Logger.info('ChainScan', `${chain.toUpperCase()}: No tokens matched criteria.`);
+        return;
+      }
+
+      Logger.info('ChainScan', `${chain.toUpperCase()}: ${alerts.length} token(s) matched criteria.`);
 
       for (const alert of alerts) {
         // Check cooldown map
         if (isTokenInCooldown(chain, alert.address)) {
+          Logger.info('Cooldown', `Skipped ${chain.toUpperCase()}:${alert.symbol} (${alert.address.slice(0, 8)}...) - in cooldown.`);
           continue;
         }
 
@@ -82,13 +99,14 @@ export class ScannerService {
         const sent = await telegramService.sendAlert(alert);
         if (sent) {
           markTokenAlerted(chain, alert.address);
-          console.log(
-            `[Alert Sent] Chain: ${chain.toUpperCase()} | Token: ${alert.symbol} | Volume1m: $${alert.volume1m}`
+          Logger.info(
+            'AlertSent',
+            `Chain: ${chain.toUpperCase()} | Token: ${alert.symbol} | Vol1m: $${alert.volume1m.toLocaleString()} | CA: ${alert.address}`
           );
         }
       }
     } catch (chainError: any) {
-      console.error(`[Scanner Error] Failed scanning chain ${chain}:`, chainError?.message || chainError);
+      Logger.error('ChainScan', `Failed scanning chain ${chain.toUpperCase()}: ${chainError?.message || chainError}`);
     }
   }
 }

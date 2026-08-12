@@ -1,6 +1,11 @@
+import fs from 'fs';
+import path from 'path';
 import { BotConfig, SupportedChain } from './types';
+import { Logger } from './utils/logger';
 
-// State stored strictly in-memory (resets on process restart as per PRD design)
+const CONFIG_FILE = path.resolve(process.cwd(), 'data', 'config.json');
+
+// Default initial config
 const config: BotConfig = {
   threshold: {
     sol: 50000,
@@ -26,26 +31,63 @@ const lastScanMap: Record<SupportedChain, Date | null> = {
   robinhood: null,
 };
 
+// Persistence Helpers
+function saveStateToFile(): void {
+  try {
+    const dir = path.dirname(CONFIG_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err: any) {
+    Logger.error('State', `Failed saving config file: ${err?.message || err}`);
+  }
+}
+
+function loadStateFromFile(): void {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      const loaded = JSON.parse(data);
+      if (loaded.threshold) config.threshold = { ...config.threshold, ...loaded.threshold };
+      if (loaded.ageFilter) config.ageFilter = { ...config.ageFilter, ...loaded.ageFilter };
+      if (typeof loaded.cooldownMinutes === 'number') config.cooldownMinutes = loaded.cooldownMinutes;
+      if (typeof loaded.isActive === 'boolean') config.isActive = loaded.isActive;
+      Logger.info('State', 'Restored configuration settings from data/config.json.');
+    }
+  } catch (err: any) {
+    Logger.error('State', `Failed loading config file: ${err?.message || err}`);
+  }
+}
+
+// Load state automatically on module import
+loadStateFromFile();
+
 export const getState = () => config;
 
 export const setThreshold = (chain: SupportedChain, amount: number): void => {
   config.threshold[chain] = amount;
+  saveStateToFile();
 };
 
 export const setMaxAge = (chain: SupportedChain, duration?: string): void => {
   config.ageFilter[chain].maxAge = duration;
+  saveStateToFile();
 };
 
 export const setMinAge = (chain: SupportedChain, duration?: string): void => {
   config.ageFilter[chain].minAge = duration;
+  saveStateToFile();
 };
 
 export const setCooldownMinutes = (minutes: number): void => {
   config.cooldownMinutes = minutes;
+  saveStateToFile();
 };
 
 export const setIsActive = (active: boolean): void => {
   config.isActive = active;
+  saveStateToFile();
 };
 
 export const updateLastScan = (chain: SupportedChain): void => {

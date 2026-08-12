@@ -1,0 +1,14 @@
+{
+  "threshold": {
+    "sol": 50000,
+    "bsc": 50000,
+    "robinhood": 50000
+  },
+  "ageFilter": {
+    "sol": {},
+    "bsc": {},
+    "robinhood": {}
+  },
+  "cooldownMinutes": 5,
+  "isActive": true
+}

@@ -3,11 +3,12 @@ dotenv.config();
 
 import { telegramService } from './services/telegram';
 import { scannerService } from './services/scanner';
+import { Logger } from './utils/logger';
 
 function main() {
-  console.log('==================================================');
-  console.log('🚀 GMGN Volume Tracker Bot Starting...');
-  console.log('==================================================');
+  Logger.info('System', '==================================================');
+  Logger.info('System', '🚀 GMGN Volume Tracker Bot Starting...');
+  Logger.info('System', '==================================================');
 
   // Launch Telegram Bot
   telegramService.launch();
@@ -20,7 +21,7 @@ function main() {
 
   // Graceful shutdown handling
   const shutdown = (signal: string) => {
-    console.log(`\n[Shutdown] Received ${signal}. Shutting down gracefully...`);
+    Logger.info('System', `Received ${signal}. Shutting down gracefully...`);
     scannerService.stop();
     telegramService.stop(signal);
     process.exit(0);
