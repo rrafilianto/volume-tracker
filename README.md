@@ -1,29 +1,38 @@
 # 🚨 GMGN Volume Tracker Bot
 
-Bot pemantau volume trading 1-menit real-time untuk token di tiga chain GMGN (**Solana**, **BNB Smart Chain**, dan **Robinhood Chain**) dengan notifikasi alert ke Telegram.
+Bot pemantau volume trading 1-menit real-time untuk token di tiga chain GMGN (**Solana**, **BNB Smart Chain**, dan **Robinhood Chain**) dengan notifikasi alert langsung ke Telegram.
 
 ---
 
 ## 📌 Fitur Utama
 
-- ⚡ **Real-time Scanning**: Memantau volume 1m token aktif setiap 5 detik secara terisolasi per chain.
-- 🔔 **Telegram Notifications**: Notifikasi instan dengan detail lengkap:
+- ⚡ **Real-time Scanning**: Memantau volume 1m token aktif secara independen per chain dengan jeda aman 5 detik antar chain (mematuhi rate limit GMGN 1 RPS).
+- ⏱ **Dynamic Poll Interval via Telegram**: Atur frekuensi polling scanner kapan saja langsung dari Telegram via `/setinterval <detik>` (default 20 detik).
+- 💾 **Auto State Persistence**: Seluruh konfigurasi (threshold, filter umur, cooldown, interval) otomatis tersimpan ke `data/config.json` dan otomatis dipulihkan (*restore*) jika server VPS di-restart.
+- 🔔 **Rich Telegram Notifications**:
   - Nama & Symbol Token
-  - **Contract Address (CA)** — Monospaced format (klik 1x langsung tersalin ke clipboard)
+  - **Contract Address (CA)** — Formatted monospaced code (1-tap/klik langsung tersalin ke clipboard)
+  - Umur Token (Token Age: `mnt`, `j`, `h`)
   - Volume (1m) USD
   - Harga Token USD
   - Market Cap USD
   - Total Fees (1m) dalam mata uang native chain (`SOL`, `BNB`, `ETH`)
   - Timestamp terdeteksi (WIB)
-- ⚙️ **Konfigurasi In-Memory via Telegram**:
+- ⏳ **Token Age Filtering**:
+  - `/setmaxage <chain> <durasi>` — Batasi umur maksimal token (contoh: `30m`, `1h`, `off`)
+  - `/setminage <chain> <durasi>` — Batasi umur minimal token (contoh: `5m`, `10m`, `off`)
+  - `/age` — Cek status filter umur token aktif
+- ⚙️ **Konfigurasi Telegram Interaktif**:
   - `/setthreshold <chain> <amount>` — Atur threshold volume per chain (`sol`, `bsc`, `robinhood`)
-  - `/setcooldown <menit>` — Atur durasi cooldown per token
-  - `/status` — Cek status scanner, last scan time, & statistik cooldown
+  - `/setinterval <detik>` — Atur frekuensi polling scanner
+  - `/setcooldown <menit>` — Atur durasi cooldown notifikasi per token
+  - `/status` — Cek status bot, last scan time, interval, & statistik cooldown
   - `/pause` & `/resume` — Kontrol scanner sementara
+- 📊 **Structured Real-Time WIB Logging**: Setiap aktivitas dicatat dengan format timestamp WIB real-time yang rapi dan mudah dibaca di PM2.
 - 🛡 **Security & Cloudflare Protection**:
-  - Pengirim diproteksi hanya untuk `TELEGRAM_CHAT_ID` / pengguna berwenang.
-  - Integrasi resmi `gmgn-cli` untuk menangani otentikasi API & melewati proteksi Cloudflare anti-bot GMGN.
-- 🚀 **Zero-DB Lightweight Architecture**: State disimpan *in-memory* di dalam Node.js process, di-manage menggunakan PM2 untuk auto-restart.
+  - Akses perintah diproteksi khusus untuk `TELEGRAM_CHAT_ID` berwenang.
+  - Integrasi biner resmi `gmgn-cli` lokal untuk menangani otentikasi API & melewati proteksi Cloudflare anti-bot GMGN.
+  - Dilengkapi *global exception handlers* (`uncaughtException` & `unhandledRejection`) membuat bot 100% *crash-proof*.
 
 ---
 
@@ -69,9 +78,6 @@ TELEGRAM_CHAT_ID=chat_id_telegram_anda
 
 # Key GMGN OpenAPI (Dapatkan dari gmgn.ai/ai)
 GMGN_PRIVATE_KEY=gmgn_key_anda
-
-# Interval Scanning (dalam milidetik, default 5000ms)
-POLL_INTERVAL_MS=5000
 ```
 
 ### 3. Mode Development
@@ -115,16 +121,18 @@ Daftar perintah berikut akan otomatis terdaftar di menu autocomplete Telegram sa
 
 | Command | Parameter | Deskripsi | Default |
 |---|---|---|---|
-| `/status` | - | Tampilkan status bot, last scan per chain, & statistik age filter | - |
+| `/status` | - | Tampilkan status bot, last scan per chain, interval, & filter age | - |
 | `/threshold` | - | Lihat threshold volume 1m aktif semua chain | - |
 | `/setthreshold` | `<chain> <amount>` | Set threshold volume 1m (`sol`, `bsc`, `robinhood`) | `$50.000` |
 | `/age` | - | Lihat filter umur token (min/max age) aktif per chain | - |
 | `/setmaxage` | `<chain> <durasi>` | Set batas umur maksimal token (`30m`, `1h`, `6h`, `2d`, atau `off`) | `Off` |
 | `/setminage` | `<chain> <durasi>` | Set batas umur minimal token (`5m`, `10m`, `1h`, atau `off`) | `Off` |
+| `/interval` | - | Lihat frekuensi polling scanner saat ini | - |
+| `/setinterval` | `<detik>` | Set frekuensi polling scanner (minimal 5 detik) | `20 detik` |
 | `/cooldown` | - | Lihat durasi cooldown aktif | - |
 | `/setcooldown` | `<menit>` | Set durasi cooldown notifikasi per token | `5 menit` |
 | `/pause` | - | Hentikan sementara scanning & notifikasi | - |
-| `/resume` | - | Dilanjutkan kembali scanning & notifikasi | - |
+| `/resume` | - | Lanjutkan kembali scanning & notifikasi | - |
 | `/help` | - | Tampilkan panduan perintah bot | - |
 
 ---
