@@ -12,8 +12,8 @@ function main() {
   // Launch Telegram Bot
   telegramService.launch();
 
-  // Parse poll interval from ENV (default 5000ms)
-  const pollIntervalMs = parseInt(process.env.POLL_INTERVAL_MS || '5000', 10);
+  // Parse poll interval from ENV (default 20000ms / 20s)
+  const pollIntervalMs = parseInt(process.env.POLL_INTERVAL_MS || '20000', 10);
 
   // Start Scanner loop
   scannerService.start(pollIntervalMs);

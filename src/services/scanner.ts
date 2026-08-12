@@ -8,7 +8,7 @@ export class ScannerService {
   private isScanning = false;
   private chains: SupportedChain[] = ['sol', 'bsc', 'robinhood'];
 
-  public start(intervalMs: number = 5000) {
+  public start(intervalMs: number = 20000) {
     if (this.timer) {
       clearInterval(this.timer);
     }
@@ -46,9 +46,14 @@ export class ScannerService {
     this.isScanning = true;
 
     try {
-      // Scan each supported chain independently
-      for (const chain of this.chains) {
+      // Scan each supported chain independently with 5s delay between chains
+      for (let i = 0; i < this.chains.length; i++) {
+        const chain = this.chains[i];
         await this.scanChain(chain);
+
+        if (i < this.chains.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
       }
     } catch (err: any) {
       console.error('[Scanner Cycle Error]', err?.message || err);
