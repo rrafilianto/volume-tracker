@@ -13,11 +13,8 @@ function main() {
   // Launch Telegram Bot
   telegramService.launch();
 
-  // Parse poll interval from ENV (default 20000ms / 20s)
-  const pollIntervalMs = parseInt(process.env.POLL_INTERVAL_MS || '20000', 10);
-
-  // Start Scanner loop
-  scannerService.start(pollIntervalMs);
+  // Start Scanner loop using config state (default 20 seconds)
+  scannerService.start();
 
   // Graceful shutdown handling
   const shutdown = (signal: string) => {
@@ -26,6 +23,15 @@ function main() {
     telegramService.stop(signal);
     process.exit(0);
   };
+
+  // Global Exception & Rejection Handlers
+  process.on('uncaughtException', (err) => {
+    Logger.error('System', `Uncaught Exception: ${err?.message || err}`);
+  });
+
+  process.on('unhandledRejection', (reason: any) => {
+    Logger.error('System', `Unhandled Rejection: ${reason?.message || reason}`);
+  });
 
   process.once('SIGINT', () => shutdown('SIGINT'));
   process.once('SIGTERM', () => shutdown('SIGTERM'));

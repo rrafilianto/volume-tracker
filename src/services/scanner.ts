@@ -9,12 +9,15 @@ export class ScannerService {
   private isScanning = false;
   private chains: SupportedChain[] = ['sol', 'bsc', 'robinhood'];
 
-  public start(intervalMs: number = 20000) {
+  public start(intervalMs?: number) {
     if (this.timer) {
       clearInterval(this.timer);
     }
 
-    Logger.info('Scanner', `Service started. Polling every ${intervalMs}ms...`);
+    const state = getState();
+    const activeIntervalMs = intervalMs ?? (state.pollIntervalSeconds * 1000);
+
+    Logger.info('Scanner', `Service started. Polling every ${activeIntervalMs}ms (${activeIntervalMs / 1000}s)...`);
     
     // Run initial scan immediately
     this.runScanCycle();
@@ -22,7 +25,13 @@ export class ScannerService {
     // Schedule regular polling
     this.timer = setInterval(() => {
       this.runScanCycle();
-    }, intervalMs);
+    }, activeIntervalMs);
+  }
+
+  public updateInterval(seconds: number) {
+    const intervalMs = seconds * 1000;
+    Logger.info('Scanner', `Updated poll interval dynamically to ${seconds}s (${intervalMs}ms).`);
+    this.start(intervalMs);
   }
 
   public stop() {

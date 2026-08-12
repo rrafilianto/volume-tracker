@@ -15,6 +15,7 @@ export interface BotConfig {
   threshold: ChainThresholds;
   ageFilter: Record<SupportedChain, ChainAgeFilter>;
   cooldownMinutes: number;
+  pollIntervalSeconds: number;
   isActive: boolean;
 }
 

@@ -5,6 +5,7 @@ import {
   setMaxAge,
   setMinAge,
   setCooldownMinutes,
+  setPollIntervalSeconds,
   setIsActive,
   getLastScanMap,
   getActiveCooldownCount,
@@ -12,6 +13,7 @@ import {
 import { SupportedChain, TokenAlert } from '../types';
 import { formatTelegramAlert, formatCurrency, formatWIBDate } from '../utils/format';
 import { Logger } from '../utils/logger';
+import { scannerService } from './scanner';
 
 export class TelegramService {
   private bot: Telegraf | null = null;
@@ -205,6 +207,39 @@ export class TelegramService {
       await ctx.reply(msg, { parse_mode: 'Markdown' });
     });
 
+    // Command: /setinterval <seconds>
+    this.bot.command('setinterval', async (ctx) => {
+      const parts = ctx.message.text.trim().split(/\s+/);
+      if (parts.length < 2) {
+        await ctx.reply('❌ *Format salah.*\nGunakan: `/setinterval <detik>`\nContoh: `/setinterval 20` atau `/setinterval 15`', {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      const seconds = parseInt(parts[1], 10);
+      if (isNaN(seconds) || seconds < 5) {
+        await ctx.reply('❌ Interval polling minimal 5 detik agar mematuhi rate limit GMGN!');
+        return;
+      }
+
+      setPollIntervalSeconds(seconds);
+      scannerService.updateInterval(seconds);
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} updated poll interval -> ${seconds}s`);
+      await ctx.reply(`✅ *Poll Interval Updated!*\nFrekuensi scanning: *${seconds} detik* per siklus`, {
+        parse_mode: 'Markdown',
+      });
+    });
+
+    // Command: /interval
+    this.bot.command('interval', async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /interval`);
+      const state = getState();
+      await ctx.reply(`⏱ *Poll Interval Scanner:* ${state.pollIntervalSeconds} detik per siklus`, {
+        parse_mode: 'Markdown',
+      });
+    });
+
     // Command: /setcooldown <minutes>
     this.bot.command('setcooldown', async (ctx) => {
       const parts = ctx.message.text.trim().split(/\s+/);
@@ -248,6 +283,7 @@ export class TelegramService {
 
       let msg = `📊 *Status GMGN Volume Tracker Bot*\n\n`;
       msg += `• *Status Bot:* ${state.isActive ? '🟢 AKTIF' : '🔴 PAUSED'}\n`;
+      msg += `• *Poll Interval:* ${state.pollIntervalSeconds} detik\n`;
       msg += `• *Cooldown Durasi:* ${state.cooldownMinutes} menit\n`;
       msg += `• *Token Ter-cooldown:* ${cooldownCount} token\n\n`;
       msg += `*Last Scan:* \n`;
@@ -293,6 +329,8 @@ export class TelegramService {
       msg += `/age - Cek filter umur token (min/max age)\n`;
       msg += `/setmaxage <chain> <durasi> - Set batas umur maksimal (contoh: 30m, 1h, off)\n`;
       msg += `/setminage <chain> <durasi> - Set batas umur minimal (contoh: 5m, 10m, off)\n`;
+      msg += `/interval - Cek frekuensi polling scanner\n`;
+      msg += `/setinterval <detik> - Set frekuensi polling (contoh: 20, 15)\n`;
       msg += `/cooldown - Cek durasi cooldown aktif\n`;
       msg += `/setcooldown <menit> - Set durasi cooldown\n`;
       msg += `/status - Cek status bot & scanner\n`;
@@ -312,6 +350,8 @@ export class TelegramService {
         { command: 'age', description: 'Cek filter umur token (min/max age)' },
         { command: 'setmaxage', description: 'Set umur maksimal (<chain> <30m/1h/off>)' },
         { command: 'setminage', description: 'Set umur minimal (<chain> <5m/10m/off>)' },
+        { command: 'interval', description: 'Lihat frekuensi polling scanner' },
+        { command: 'setinterval', description: 'Set frekuensi polling (<detik>)' },
         { command: 'cooldown', description: 'Lihat durasi cooldown aktif' },
         { command: 'setcooldown', description: 'Set durasi cooldown (<menit>)' },
         { command: 'pause', description: 'Hentikan sementara scanning' },

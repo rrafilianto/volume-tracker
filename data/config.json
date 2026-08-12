@@ -10,5 +10,6 @@
     "robinhood": {}
   },
   "cooldownMinutes": 5,
+  "pollIntervalSeconds": 20,
   "isActive": true
 }

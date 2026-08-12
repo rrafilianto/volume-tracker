@@ -18,6 +18,7 @@ const config: BotConfig = {
     robinhood: {},
   },
   cooldownMinutes: 5,
+  pollIntervalSeconds: 20,
   isActive: true,
 };
 
@@ -52,6 +53,7 @@ function loadStateFromFile(): void {
       if (loaded.threshold) config.threshold = { ...config.threshold, ...loaded.threshold };
       if (loaded.ageFilter) config.ageFilter = { ...config.ageFilter, ...loaded.ageFilter };
       if (typeof loaded.cooldownMinutes === 'number') config.cooldownMinutes = loaded.cooldownMinutes;
+      if (typeof loaded.pollIntervalSeconds === 'number') config.pollIntervalSeconds = loaded.pollIntervalSeconds;
       if (typeof loaded.isActive === 'boolean') config.isActive = loaded.isActive;
       Logger.info('State', 'Restored configuration settings from data/config.json.');
     }
@@ -82,6 +84,11 @@ export const setMinAge = (chain: SupportedChain, duration?: string): void => {
 
 export const setCooldownMinutes = (minutes: number): void => {
   config.cooldownMinutes = minutes;
+  saveStateToFile();
+};
+
+export const setPollIntervalSeconds = (seconds: number): void => {
+  config.pollIntervalSeconds = seconds;
   saveStateToFile();
 };
 
