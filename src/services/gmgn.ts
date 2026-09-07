@@ -29,7 +29,8 @@ export class GMGNService {
       const alerts = await this.fetchViaCLIRetry(chain, minVolume, apiKey, ageFilter);
       return alerts;
     } catch (cliError: any) {
-      Logger.warn('GMGN API', `Temporary network timeout fetching chain ${chain.toUpperCase()}, skipping cycle.`);
+      const errorDetail = (cliError?.stderr?.trim() || cliError?.message || String(cliError)).replace(/\r?\n/g, ' ');
+      Logger.warn('GMGN API', `Failed fetching chain ${chain.toUpperCase()}: ${errorDetail}, skipping cycle.`);
       return [];
     }
   }
