@@ -22,7 +22,13 @@ Bot pemantau volume trading 1-menit real-time untuk token di tiga chain GMGN (**
   - `/setmaxage <chain> <durasi>` — Batasi umur maksimal token (contoh: `30m`, `1h`, `off`)
   - `/setminage <chain> <durasi>` — Batasi umur minimal token (contoh: `5m`, `10m`, `off`)
   - `/age` — Cek status filter umur token aktif
-- ⚙️ **Konfigurasi Telegram Interaktif**:
+- 🎛 **Interactive Control Panel (`/settings` / `/menu`)**:
+  - Dashboard interaktif Telegram berbasis tombol inline (*Inline Keyboard*) untuk mengontrol seluruh bot tanpa perlu mengetik command panjang.
+  - **1-Click Chain Toggle**: Klik tombol `[ SOL: 🟢 ON ]` langsung berubah menjadi `[ SOL: 🔴 OFF ]` secara real-time.
+  - **Quick Preset Threshold**: Atur threshold volume ($25k, $50k, $100k) per chain via tombol.
+  - **Quick Preset Interval & Cooldown**: Ganti kecepatan scan (10s, 15s, 20s, 30s) dan cooldown (3m, 5m, 10m, 15m) dalam 1 tap.
+  - **Pause / Resume Scanner**: Tombol instan untuk menghentikan atau melanjutkan pemantauan.
+- ⚙️ **Konfigurasi Telegram Standar**:
   - `/chains` — Cek status aktif/non-aktif tracker untuk setiap chain
   - `/setchain <chain> <on/off>` — Aktifkan atau non-aktifkan tracker volume untuk chain tertentu (`sol`, `bsc`, `robinhood`)
   - `/setthreshold <chain> <amount>` — Atur threshold volume per chain (`sol`, `bsc`, `robinhood`)
@@ -123,6 +129,7 @@ Daftar perintah berikut akan otomatis terdaftar di menu autocomplete Telegram sa
 
 | Command | Parameter | Deskripsi | Default |
 |---|---|---|---|
+| `/settings` / `/menu` | - | 🎛 Buka Control Panel Interaktif (Inline Buttons Dashboard) | - |
 | `/status` | - | Tampilkan status bot, status per chain, last scan, interval, & filter age | - |
 | `/chains` | - | Lihat status aktif/non-aktif tracker untuk setiap chain | - |
 | `/setchain` | `<chain> <on/off>` | Aktifkan/non-aktifkan tracker chain (`sol`, `bsc`, `robinhood`) | `On` (Semua Aktif) |

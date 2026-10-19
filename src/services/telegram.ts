@@ -1,4 +1,4 @@
-import { Telegraf, Context } from 'telegraf';
+import { Telegraf, Context, Markup } from 'telegraf';
 import {
   getState,
   setThreshold,
@@ -53,6 +53,109 @@ export class TelegramService {
         return;
       }
       return next();
+    });
+
+    // Command: /settings or /menu - Interactive Control Panel
+    this.bot.command(['settings', 'menu', 'config'], async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} opened /settings`);
+      const menu = this.renderMainMenu();
+      await ctx.reply(menu.text, { parse_mode: 'Markdown', ...menu.keyboard });
+    });
+
+    // Action: Toggle chains (SOL, BSC, ROBINHOOD)
+    this.bot.action(/^toggle_chain_(sol|bsc|robinhood)$/, async (ctx) => {
+      const match = (ctx as any).match;
+      const chain = match[1] as SupportedChain;
+      const state = getState();
+      const current = state.chainActive?.[chain] !== false;
+      const nextState = !current;
+      setChainActive(chain, nextState);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} toggled ${chain.toUpperCase()} -> ${nextState ? 'ON' : 'OFF'}`);
+      await ctx.answerCbQuery(`Chain ${chain.toUpperCase()}: ${nextState ? '🟢 AKTIF' : '🔴 NONAKTIF'}`);
+      const menu = this.renderMainMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Pause scanner
+    this.bot.action('toggle_pause', async (ctx) => {
+      setIsActive(false);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} paused scanner via menu`);
+      await ctx.answerCbQuery('⏸ Scanner dihentikan sementara');
+      const menu = this.renderMainMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Resume scanner
+    this.bot.action('toggle_resume', async (ctx) => {
+      setIsActive(true);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} resumed scanner via menu`);
+      await ctx.answerCbQuery('▶️ Scanner dilanjutkan');
+      const menu = this.renderMainMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Return to main menu / Refresh
+    this.bot.action('menu_main', async (ctx) => {
+      await ctx.answerCbQuery('🔄 Data diperbarui');
+      const menu = this.renderMainMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Show Threshold submenu
+    this.bot.action('menu_threshold', async (ctx) => {
+      await ctx.answerCbQuery();
+      const menu = this.renderThresholdMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Show Timing submenu
+    this.bot.action('menu_timing', async (ctx) => {
+      await ctx.answerCbQuery();
+      const menu = this.renderTimingMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Set threshold preset
+    this.bot.action(/^set_th_(sol|bsc|robinhood)_(\d+)$/, async (ctx) => {
+      const match = (ctx as any).match;
+      const chain = match[1] as SupportedChain;
+      const amount = parseInt(match[2], 10);
+      setThreshold(chain, amount);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} set threshold ${chain.toUpperCase()} -> $${amount}`);
+      await ctx.answerCbQuery(`Threshold ${chain.toUpperCase()} diubah ke ${formatCurrency(amount)}`);
+      const menu = this.renderThresholdMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Set interval preset
+    this.bot.action(/^set_interval_(\d+)$/, async (ctx) => {
+      const match = (ctx as any).match;
+      const seconds = parseInt(match[1], 10);
+      setPollIntervalSeconds(seconds);
+      scannerService.updateInterval(seconds);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} set poll interval -> ${seconds}s`);
+      await ctx.answerCbQuery(`Interval scan diubah ke ${seconds}s`);
+      const menu = this.renderTimingMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Set cooldown preset
+    this.bot.action(/^set_cd_(\d+)$/, async (ctx) => {
+      const match = (ctx as any).match;
+      const minutes = parseInt(match[1], 10);
+      setCooldownMinutes(minutes);
+      Logger.info('TelegramAction', `User ${ctx.from?.id} set cooldown -> ${minutes}m`);
+      await ctx.answerCbQuery(`Cooldown diubah ke ${minutes} menit`);
+      const menu = this.renderTimingMenu();
+      await this.safeEditMessage(ctx, menu.text, menu.keyboard);
+    });
+
+    // Action: Close menu
+    this.bot.action('menu_close', async (ctx) => {
+      await ctx.answerCbQuery('Menu ditutup.');
+      try {
+        await ctx.deleteMessage();
+      } catch (e) {}
     });
 
     // Command: /setthreshold <chain> <amount>
@@ -391,6 +494,7 @@ export class TelegramService {
     this.bot.command('help', async (ctx) => {
       Logger.info('TelegramCommand', `User ${ctx.from?.id} executed /help`);
       let msg = `🤖 *GMGN Volume Tracker Commands:*\n\n`;
+      msg += `/settings atau /menu - 🎛 Buka Control Panel Interaktif\n`;
       msg += `/chains - Cek status aktif/nonaktif tracker tiap chain\n`;
       msg += `/setchain <chain> <on/off> - Aktifkan atau nonaktifkan tracker chain (contoh: /setchain sol off)\n`;
       msg += `/threshold - Cek threshold volume aktif\n`;
@@ -413,6 +517,7 @@ export class TelegramService {
     if (!this.bot) return;
     try {
       await this.bot.telegram.setMyCommands([
+        { command: 'settings', description: '🎛 Buka Control Panel Interaktif (Menu)' },
         { command: 'status', description: 'Cek status bot, chain tracker & age filter' },
         { command: 'chains', description: 'Lihat status aktif/nonaktif tiap chain' },
         { command: 'setchain', description: 'Aktif/nonaktifkan chain (<chain> <on/off>)' },
@@ -432,6 +537,119 @@ export class TelegramService {
       Logger.info('Telegram', 'Bot commands menu registered with Telegram API.');
     } catch (err: any) {
       Logger.error('Telegram', `Failed setting bot commands: ${err?.message || err}`);
+    }
+  }
+
+  public renderMainMenu() {
+    const state = getState();
+    const solActive = state.chainActive?.sol !== false;
+    const bscActive = state.chainActive?.bsc !== false;
+    const robinActive = state.chainActive?.robinhood !== false;
+
+    let text = `⚙️ *GMGN Volume Tracker — Control Panel*\n\n`;
+    text += `• *Status Scanner:* ${state.isActive ? '🟢 AKTIF' : '🔴 PAUSED'}\n`;
+    text += `• *Poll Interval:* ${state.pollIntervalSeconds} detik | *Cooldown:* ${state.cooldownMinutes} menit\n\n`;
+    text += `*Status Chain Tracker:*\n`;
+    text += `  - SOL: ${solActive ? '🟢 Aktif' : '🔴 Nonaktif'} (${formatCurrency(state.threshold.sol)})\n`;
+    text += `  - BSC: ${bscActive ? '🟢 Aktif' : '🔴 Nonaktif'} (${formatCurrency(state.threshold.bsc)})\n`;
+    text += `  - ROBINHOOD: ${robinActive ? '🟢 Aktif' : '🔴 Nonaktif'} (${formatCurrency(state.threshold.robinhood)})\n\n`;
+    text += `_Klik tombol di bawah untuk mengubah pengaturan seketika:_`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback(`SOL: ${solActive ? '🟢 ON' : '🔴 OFF'}`, 'toggle_chain_sol'),
+        Markup.button.callback(`BSC: ${bscActive ? '🟢 ON' : '🔴 OFF'}`, 'toggle_chain_bsc'),
+        Markup.button.callback(`ROBIN: ${robinActive ? '🟢 ON' : '🔴 OFF'}`, 'toggle_chain_robinhood'),
+      ],
+      [
+        state.isActive
+          ? Markup.button.callback('⏸ Pause Scanner', 'toggle_pause')
+          : Markup.button.callback('▶️ Resume Scanner', 'toggle_resume'),
+        Markup.button.callback('🔄 Refresh Status', 'menu_main'),
+      ],
+      [
+        Markup.button.callback('💰 Ubah Threshold', 'menu_threshold'),
+        Markup.button.callback('⏱ Interval & Cooldown', 'menu_timing'),
+      ],
+      [
+        Markup.button.callback('❌ Tutup Menu', 'menu_close'),
+      ],
+    ]);
+
+    return { text, keyboard };
+  }
+
+  public renderThresholdMenu() {
+    const state = getState();
+    let text = `💰 *Pengaturan Preset Threshold Volume (1m)*\n\n`;
+    text += `Threshold saat ini:\n`;
+    text += `• *SOL:* ${formatCurrency(state.threshold.sol)}\n`;
+    text += `• *BSC:* ${formatCurrency(state.threshold.bsc)}\n`;
+    text += `• *ROBINHOOD:* ${formatCurrency(state.threshold.robinhood)}\n\n`;
+    text += `_Pilih preset di bawah untuk mengubah batas volume alert:_`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback(`SOL $25k${state.threshold.sol === 25000 ? ' ✅' : ''}`, 'set_th_sol_25000'),
+        Markup.button.callback(`SOL $50k${state.threshold.sol === 50000 ? ' ✅' : ''}`, 'set_th_sol_50000'),
+        Markup.button.callback(`SOL $100k${state.threshold.sol === 100000 ? ' ✅' : ''}`, 'set_th_sol_100000'),
+      ],
+      [
+        Markup.button.callback(`BSC $25k${state.threshold.bsc === 25000 ? ' ✅' : ''}`, 'set_th_bsc_25000'),
+        Markup.button.callback(`BSC $50k${state.threshold.bsc === 50000 ? ' ✅' : ''}`, 'set_th_bsc_50000'),
+        Markup.button.callback(`BSC $100k${state.threshold.bsc === 100000 ? ' ✅' : ''}`, 'set_th_bsc_100000'),
+      ],
+      [
+        Markup.button.callback(`ROBIN $25k${state.threshold.robinhood === 25000 ? ' ✅' : ''}`, 'set_th_robinhood_25000'),
+        Markup.button.callback(`ROBIN $50k${state.threshold.robinhood === 50000 ? ' ✅' : ''}`, 'set_th_robinhood_50000'),
+        Markup.button.callback(`ROBIN $100k${state.threshold.robinhood === 100000 ? ' ✅' : ''}`, 'set_th_robinhood_100000'),
+      ],
+      [
+        Markup.button.callback('🔙 Kembali ke Menu Utama', 'menu_main'),
+      ],
+    ]);
+
+    return { text, keyboard };
+  }
+
+  public renderTimingMenu() {
+    const state = getState();
+    let text = `⏱ *Pengaturan Polling Scanner & Cooldown Alert*\n\n`;
+    text += `• *Poll Interval Scanner:* ${state.pollIntervalSeconds} detik\n`;
+    text += `• *Cooldown Notifikasi:* ${state.cooldownMinutes} menit\n\n`;
+    text += `_Pilih nilai preset di bawah:_`;
+
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback(`⏱ 10s${state.pollIntervalSeconds === 10 ? ' ✅' : ''}`, 'set_interval_10'),
+        Markup.button.callback(`⏱ 15s${state.pollIntervalSeconds === 15 ? ' ✅' : ''}`, 'set_interval_15'),
+        Markup.button.callback(`⏱ 20s${state.pollIntervalSeconds === 20 ? ' ✅' : ''}`, 'set_interval_20'),
+        Markup.button.callback(`⏱ 30s${state.pollIntervalSeconds === 30 ? ' ✅' : ''}`, 'set_interval_30'),
+      ],
+      [
+        Markup.button.callback(`⏳ 3m${state.cooldownMinutes === 3 ? ' ✅' : ''}`, 'set_cd_3'),
+        Markup.button.callback(`⏳ 5m${state.cooldownMinutes === 5 ? ' ✅' : ''}`, 'set_cd_5'),
+        Markup.button.callback(`⏳ 10m${state.cooldownMinutes === 10 ? ' ✅' : ''}`, 'set_cd_10'),
+        Markup.button.callback(`⏳ 15m${state.cooldownMinutes === 15 ? ' ✅' : ''}`, 'set_cd_15'),
+      ],
+      [
+        Markup.button.callback('🔙 Kembali ke Menu Utama', 'menu_main'),
+      ],
+    ]);
+
+    return { text, keyboard };
+  }
+
+  private async safeEditMessage(ctx: Context, text: string, keyboard: any) {
+    try {
+      await ctx.editMessageText(text, {
+        parse_mode: 'Markdown',
+        ...keyboard,
+      });
+    } catch (err: any) {
+      if (!err?.message?.includes('message is not modified')) {
+        Logger.error('TelegramMenu', `Failed to edit message: ${err?.message || err}`);
+      }
     }
   }
 
