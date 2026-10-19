@@ -23,10 +23,12 @@ Bot pemantau volume trading 1-menit real-time untuk token di tiga chain GMGN (**
   - `/setminage <chain> <durasi>` — Batasi umur minimal token (contoh: `5m`, `10m`, `off`)
   - `/age` — Cek status filter umur token aktif
 - ⚙️ **Konfigurasi Telegram Interaktif**:
+  - `/chains` — Cek status aktif/non-aktif tracker untuk setiap chain
+  - `/setchain <chain> <on/off>` — Aktifkan atau non-aktifkan tracker volume untuk chain tertentu (`sol`, `bsc`, `robinhood`)
   - `/setthreshold <chain> <amount>` — Atur threshold volume per chain (`sol`, `bsc`, `robinhood`)
   - `/setinterval <detik>` — Atur frekuensi polling scanner
   - `/setcooldown <menit>` — Atur durasi cooldown notifikasi per token
-  - `/status` — Cek status bot, last scan time, interval, & statistik cooldown
+  - `/status` — Cek status bot, status per chain, last scan time, interval, & statistik cooldown
   - `/pause` & `/resume` — Kontrol scanner sementara
 - 📊 **Structured Real-Time WIB Logging**: Setiap aktivitas dicatat dengan format timestamp WIB real-time yang rapi dan mudah dibaca di PM2.
 - 🛡 **Security & Cloudflare Protection**:
@@ -121,7 +123,9 @@ Daftar perintah berikut akan otomatis terdaftar di menu autocomplete Telegram sa
 
 | Command | Parameter | Deskripsi | Default |
 |---|---|---|---|
-| `/status` | - | Tampilkan status bot, last scan per chain, interval, & filter age | - |
+| `/status` | - | Tampilkan status bot, status per chain, last scan, interval, & filter age | - |
+| `/chains` | - | Lihat status aktif/non-aktif tracker untuk setiap chain | - |
+| `/setchain` | `<chain> <on/off>` | Aktifkan/non-aktifkan tracker chain (`sol`, `bsc`, `robinhood`) | `On` (Semua Aktif) |
 | `/threshold` | - | Lihat threshold volume 1m aktif semua chain | - |
 | `/setthreshold` | `<chain> <amount>` | Set threshold volume 1m (`sol`, `bsc`, `robinhood`) | `$50.000` |
 | `/age` | - | Lihat filter umur token (min/max age) aktif per chain | - |

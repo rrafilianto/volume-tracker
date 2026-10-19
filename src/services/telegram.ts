@@ -7,6 +7,7 @@ import {
   setCooldownMinutes,
   setPollIntervalSeconds,
   setIsActive,
+  setChainActive,
   getLastScanMap,
   getActiveCooldownCount,
 } from '../state';
@@ -100,6 +101,68 @@ export class TelegramService {
       msg += `• *BSC:* ${formatCurrency(state.threshold.bsc)}\n`;
       msg += `• *ROBINHOOD:* ${formatCurrency(state.threshold.robinhood)}\n`;
       await ctx.reply(msg, { parse_mode: 'Markdown' });
+    });
+
+    // Command: /chains or /chain
+    this.bot.command(['chains', 'chain'], async (ctx) => {
+      Logger.info('TelegramCommand', `User ${ctx.from?.id} checked /chains`);
+      const state = getState();
+      let msg = `⛓ *Status Tracker Volume Per Chain:*\n\n`;
+      msg += `• *SOL:* ${state.chainActive?.sol !== false ? '🟢 AKTIF' : '🔴 NONAKTIF'}\n`;
+      msg += `• *BSC:* ${state.chainActive?.bsc !== false ? '🟢 AKTIF' : '🔴 NONAKTIF'}\n`;
+      msg += `• *ROBINHOOD:* ${state.chainActive?.robinhood !== false ? '🟢 AKTIF' : '🔴 NONAKTIF'}\n\n`;
+      msg += `_Gunakan command berikut untuk menyalakan/mematikan:_\n`;
+      msg += `\`/setchain <chain> <on/off>\`\n`;
+      msg += `_Contoh:_ \`/setchain sol off\` atau \`/setchain bsc on\``;
+      await ctx.reply(msg, { parse_mode: 'Markdown' });
+    });
+
+    // Command: /setchain <chain> <on/off>
+    this.bot.command('setchain', async (ctx) => {
+      const parts = ctx.message.text.trim().split(/\s+/);
+      if (parts.length < 3) {
+        await ctx.reply(
+          '❌ *Format salah.*\nGunakan: `/setchain <chain> <on/off>`\nContoh: `/setchain sol off` atau `/setchain bsc on`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      const chainInput = parts[1].toLowerCase() as SupportedChain;
+      const statusInput = parts[2].toLowerCase();
+
+      const validChains: SupportedChain[] = ['sol', 'bsc', 'robinhood'];
+      if (!validChains.includes(chainInput)) {
+        await ctx.reply(`❌ Chain tidak valid! Pilihan chain: \`sol\`, \`bsc\`, \`robinhood\``, {
+          parse_mode: 'Markdown',
+        });
+        return;
+      }
+
+      let isActive: boolean;
+      if (['on', 'aktif', 'enable', '1', 'true'].includes(statusInput)) {
+        isActive = true;
+      } else if (['off', 'nonaktif', 'disable', '0', 'false'].includes(statusInput)) {
+        isActive = false;
+      } else {
+        await ctx.reply(
+          '❌ *Status tidak valid!*\nGunakan `on` (aktif) atau `off` (nonaktif).\nContoh: `/setchain sol off` atau `/setchain sol on`',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+
+      setChainActive(chainInput, isActive);
+      Logger.info(
+        'TelegramCommand',
+        `User ${ctx.from?.id} updated chain active state: ${chainInput.toUpperCase()} -> ${isActive ? 'ON' : 'OFF'}`
+      );
+      await ctx.reply(
+        `✅ *Status Tracker Chain Diperbarui!*\nChain: \`${chainInput.toUpperCase()}\`\nStatus: ${
+          isActive ? '🟢 *AKTIF*' : '🔴 *NONAKTIF*'
+        }`,
+        { parse_mode: 'Markdown' }
+      );
     });
 
     // Command: /setmaxage <chain> <duration>
@@ -286,6 +349,10 @@ export class TelegramService {
       msg += `• *Poll Interval:* ${state.pollIntervalSeconds} detik\n`;
       msg += `• *Cooldown Durasi:* ${state.cooldownMinutes} menit\n`;
       msg += `• *Token Ter-cooldown:* ${cooldownCount} token\n\n`;
+      msg += `*Status Chain Tracker:*\n`;
+      msg += `  - SOL: ${state.chainActive?.sol !== false ? '🟢 Aktif' : '🔴 Nonaktif'}\n`;
+      msg += `  - BSC: ${state.chainActive?.bsc !== false ? '🟢 Aktif' : '🔴 Nonaktif'}\n`;
+      msg += `  - ROBINHOOD: ${state.chainActive?.robinhood !== false ? '🟢 Aktif' : '🔴 Nonaktif'}\n\n`;
       msg += `*Last Scan:* \n`;
       msg += `  - SOL: ${formatScanTime(lastScan.sol)}\n`;
       msg += `  - BSC: ${formatScanTime(lastScan.bsc)}\n`;
@@ -324,6 +391,8 @@ export class TelegramService {
     this.bot.command('help', async (ctx) => {
       Logger.info('TelegramCommand', `User ${ctx.from?.id} executed /help`);
       let msg = `🤖 *GMGN Volume Tracker Commands:*\n\n`;
+      msg += `/chains - Cek status aktif/nonaktif tracker tiap chain\n`;
+      msg += `/setchain <chain> <on/off> - Aktifkan atau nonaktifkan tracker chain (contoh: /setchain sol off)\n`;
       msg += `/threshold - Cek threshold volume aktif\n`;
       msg += `/setthreshold <chain> <amount> - Set threshold volume\n`;
       msg += `/age - Cek filter umur token (min/max age)\n`;
@@ -344,7 +413,9 @@ export class TelegramService {
     if (!this.bot) return;
     try {
       await this.bot.telegram.setMyCommands([
-        { command: 'status', description: 'Cek status bot, last scan & age filter' },
+        { command: 'status', description: 'Cek status bot, chain tracker & age filter' },
+        { command: 'chains', description: 'Lihat status aktif/nonaktif tiap chain' },
+        { command: 'setchain', description: 'Aktif/nonaktifkan chain (<chain> <on/off>)' },
         { command: 'threshold', description: 'Lihat threshold volume aktif' },
         { command: 'setthreshold', description: 'Set threshold (<chain> <amount>)' },
         { command: 'age', description: 'Cek filter umur token (min/max age)' },

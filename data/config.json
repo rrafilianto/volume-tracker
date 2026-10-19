@@ -11,5 +11,10 @@
   },
   "cooldownMinutes": 5,
   "pollIntervalSeconds": 20,
+  "chainActive": {
+    "sol": true,
+    "bsc": true,
+    "robinhood": true
+  },
   "isActive": true
 }

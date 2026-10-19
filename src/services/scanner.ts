@@ -58,12 +58,20 @@ export class ScannerService {
     Logger.info('ScannerCycle', '>>> Starting scan cycle across all chains...');
 
     try {
-      // Scan each supported chain independently with 5s delay between chains
-      for (let i = 0; i < this.chains.length; i++) {
-        const chain = this.chains[i];
+      // Only scan chains that are actively enabled
+      const activeChains = this.chains.filter((c) => state.chainActive?.[c] !== false);
+
+      if (activeChains.length === 0) {
+        Logger.info('ScannerCycle', 'All chains are currently set to inactive. Skipping scan cycle.');
+        return;
+      }
+
+      // Scan each active chain independently with 5s delay between chains
+      for (let i = 0; i < activeChains.length; i++) {
+        const chain = activeChains[i];
         await this.scanChain(chain);
 
-        if (i < this.chains.length - 1) {
+        if (i < activeChains.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }

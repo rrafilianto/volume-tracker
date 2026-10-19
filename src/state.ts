@@ -17,6 +17,11 @@ const config: BotConfig = {
     bsc: {},
     robinhood: {},
   },
+  chainActive: {
+    sol: true,
+    bsc: true,
+    robinhood: true,
+  },
   cooldownMinutes: 5,
   pollIntervalSeconds: 20,
   isActive: true,
@@ -52,6 +57,7 @@ function loadStateFromFile(): void {
       const loaded = JSON.parse(data);
       if (loaded.threshold) config.threshold = { ...config.threshold, ...loaded.threshold };
       if (loaded.ageFilter) config.ageFilter = { ...config.ageFilter, ...loaded.ageFilter };
+      if (loaded.chainActive) config.chainActive = { ...config.chainActive, ...loaded.chainActive };
       if (typeof loaded.cooldownMinutes === 'number') config.cooldownMinutes = loaded.cooldownMinutes;
       if (typeof loaded.pollIntervalSeconds === 'number') config.pollIntervalSeconds = loaded.pollIntervalSeconds;
       if (typeof loaded.isActive === 'boolean') config.isActive = loaded.isActive;
@@ -95,6 +101,15 @@ export const setPollIntervalSeconds = (seconds: number): void => {
 export const setIsActive = (active: boolean): void => {
   config.isActive = active;
   saveStateToFile();
+};
+
+export const setChainActive = (chain: SupportedChain, active: boolean): void => {
+  config.chainActive[chain] = active;
+  saveStateToFile();
+};
+
+export const isChainActive = (chain: SupportedChain): boolean => {
+  return config.chainActive[chain] ?? true;
 };
 
 export const updateLastScan = (chain: SupportedChain): void => {
